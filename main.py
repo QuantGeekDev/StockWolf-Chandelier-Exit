@@ -1,5 +1,6 @@
 import os
 import datetime
+from datetime import datetime as date
 import pandas as pd
 import dotenv
 from alpaca.data.historical import StockHistoricalDataClient
@@ -26,16 +27,27 @@ def get_watchlist():
     return tickers_watchlist
 
 
-def get_historical_data_start_date(days=30):
-    """ Gets start date n days back from today """
-    start_date = datetime.date.today() - datetime.timedelta(days=days)
+def get_historical_data_start_date(days=30, hours=30, minutes=30):
+    if not TIME_INTERVAL:
+        print("Missing TIME_INTERVAL from environment variables")
+    """ Gets start date n timeframe units of measurements back from now """
+    if TIME_INTERVAL == "1Day":
+        start_date = datetime.date.today() - datetime.timedelta(days=days)
+    elif TIME_INTERVAL == "1Hour":
+        start_date = date.now() - datetime.timedelta(hours=hours)
+    elif TIME_INTERVAL == "1Min":
+        start_date = date.now() - datetime.timedelta(minutes=minutes)
     return start_date
 
 
-def get_historical_data_timeframe(time_interval="1Day"):
+def get_historical_data_timeframe():
     """ Return Alpaca TimeFrame object based on time_interval """
-    if time_interval == "1Day":
+    if TIME_INTERVAL == "1Day":
         return TimeFrame.Day
+    if TIME_INTERVAL == "1Hour":
+        return TimeFrame.Hour
+    if TIME_INTERVAL == "1Min":
+        return TimeFrame.Minute
     else:
         print("Invalid time interval in .env")
 
