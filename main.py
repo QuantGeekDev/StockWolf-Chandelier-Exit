@@ -152,7 +152,6 @@ def job():
 
 if __name__ == "__main__":
     print("Initializing 🐺StockWolf: Chandelier Exit\n")
-    job()
     schedule.every().day.at("09:30", "America/New_York").do(job)
     while True:
         schedule.run_pending()
