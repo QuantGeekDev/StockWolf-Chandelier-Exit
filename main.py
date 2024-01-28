@@ -58,7 +58,26 @@ def get_historical_data(watchlist):
     return tickers_historical_data
 
 
-watchlist = get_watchlist()
-get_historical_data(watchlist)
+def calculate_average_true_range(ticker_df):
+    """Calculates the Average True Range (ATR) and appends it to the DataFrame"""
+    atr_range = 14
+    high_low = ticker_df['high'] - ticker_df['low']
+    high_close = (ticker_df['high'] - ticker_df['close'].shift()).abs()
+    low_close = (ticker_df['low'] - ticker_df['close'].shift()).abs()
+
+    ranges = pd.concat([high_low, high_close, low_close], axis=1)
+    true_range = ranges.max(axis=1)
+
+    average_true_range = true_range.ewm(alpha=1/atr_range, adjust=False).mean()
+
+    ticker_df['average_true_range'] = average_true_range
+
+    return ticker_df
+
+tickers = get_watchlist()
+tickers_historical_data = get_historical_data(tickers)
+
+for ticker, data in tickers_historical_data.items():
+    tickers_historical_data[ticker] = calculate_average_true_range(data)
 
 
