@@ -42,6 +42,10 @@ def get_historical_data_timeframe(time_interval="1Day"):
 
 def get_historical_data(watchlist):
     """ Fetches historical data for given tickers and returns dictionary of Dataframes"""
+    if not ALPACA_API_KEY:
+        print("Missing Alpaca API key")
+    if not ALPACA_SECRET_KEY:
+        print("Missing Alpaca Secret Key")
     tickers_historical_data = {}
     data_client = StockHistoricalDataClient(api_key=ALPACA_API_KEY, secret_key=ALPACA_SECRET_KEY)
     start_date = get_historical_data_start_date()
@@ -92,26 +96,32 @@ def calculate_highest_price(ticker_df, lookback_period=22):
 def calculate_chandelier_exit(average_true_range, highest_price, multiplier=2.5):
     """ Calculates chandelier exit price following this formula:
     Chandelier Exit = Highest High – (ATR * Multiplier)"""
-    chandlier_exit_price = highest_price - (average_true_range * multiplier)
-    return chandlier_exit_price
+    chandelier_exit_price = highest_price - (average_true_range * multiplier)
+    return chandelier_exit_price
 
 
 def notify_telegram_channel(report):
     """ Sends the report to a selected Telegram Channel"""
+    if not TELEGRAM_TOKEN:
+        print("Missing Telegram Token")
+    if not TELEGRAM_CHAT_ID:
+        print("Missing Telegram Chat ID")
+
     message = f"New Chandelier Exit report has been generated: \n {report}"
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage?chat_id={TELEGRAM_CHAT_ID}&text={message}"
     requests.post(url)
 
 
 def generate_chandelier_exit_report(tickers_historical_data):
+    """ Generate a chandelier exit price report as a string """
     report = ""
     for ticker, data in tickers_historical_data.items():
         try:
             tickers_historical_data[ticker] = calculate_average_true_range(data)
             highest_price = calculate_highest_price(data)
             current_average_true_range = data.tail(1)["average_true_range"].values[0]
-            current_chandelier_exit = calculate_chandelier_exit(current_average_true_range, highest_price)
-            ticker_report = f"\n{ticker}: Chandelier Exit Price = ${current_chandelier_exit} "
+            current_chandelier_exit = round(calculate_chandelier_exit(current_average_true_range, highest_price), 2)
+            ticker_report = f"\n[{ticker}] Exit Price = ${current_chandelier_exit}"
             print(ticker_report)
             report = report + ticker_report
         except Exception as e:
@@ -121,6 +131,7 @@ def generate_chandelier_exit_report(tickers_historical_data):
 
 
 def job():
+    """ Main analysis logic loop"""
     tickers = get_watchlist()
     tickers_historical_data = get_historical_data(tickers)
     report = generate_chandelier_exit_report(tickers_historical_data)
@@ -129,8 +140,9 @@ def job():
 
 if __name__ == "__main__":
     print("Initializing 🐺StockWolf: Chandelier Exit\n")
+    job()
     schedule.every().day.at("09:30", "America/New_York").do(job)
     while True:
         schedule.run_pending()
-        time.sleep(600)
         print("Waiting until 9:30AM New York time")
+        time.sleep(600)
