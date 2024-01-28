@@ -5,13 +5,17 @@ import dotenv
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockBarsRequest
 from alpaca.data.timeframe import TimeFrame
-
+import requests
+import schedule
+import time
 
 dotenv.load_dotenv()
 ALPACA_API_KEY = os.getenv("ALPACA_API_KEY")
 ALPACA_SECRET_KEY = os.getenv("ALPACA_SECRET_KEY")
 ALPACA_BASE_URL = os.getenv("ALPACA_BASE_URL")
 TIME_INTERVAL = os.getenv("TIME_INTERVAL")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 
 
 def get_watchlist():
@@ -92,13 +96,41 @@ def calculate_chandelier_exit(average_true_range, highest_price, multiplier=2.5)
     return chandlier_exit_price
 
 
-tickers = get_watchlist()
-tickers_historical_data = get_historical_data(tickers)
+def notify_telegram_channel(report):
+    """ Sends the report to a selected Telegram Channel"""
+    message = f"New Chandelier Exit report has been generated: \n {report}"
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage?chat_id={TELEGRAM_CHAT_ID}&text={message}"
+    requests.post(url)
 
 
-for ticker, data in tickers_historical_data.items():
-    tickers_historical_data[ticker] = calculate_average_true_range(data)
-    highest_price = calculate_highest_price(data)
-    current_average_true_range = data.tail(1)["average_true_range"].values[0]
-    current_chandelier_exit = calculate_chandelier_exit(current_average_true_range, highest_price)
-    print(f"{ticker}: Chandelier Exit Price = {current_chandelier_exit} ")
+def generate_chandelier_exit_report(tickers_historical_data):
+    report = ""
+    for ticker, data in tickers_historical_data.items():
+        try:
+            tickers_historical_data[ticker] = calculate_average_true_range(data)
+            highest_price = calculate_highest_price(data)
+            current_average_true_range = data.tail(1)["average_true_range"].values[0]
+            current_chandelier_exit = calculate_chandelier_exit(current_average_true_range, highest_price)
+            ticker_report = f"\n{ticker}: Chandelier Exit Price = ${current_chandelier_exit} "
+            print(ticker_report)
+            report = report + ticker_report
+        except Exception as e:
+            print(f"Unable to calculate Chandelier Exit for {ticker} : {e}")
+            continue
+    return report
+
+
+def job():
+    tickers = get_watchlist()
+    tickers_historical_data = get_historical_data(tickers)
+    report = generate_chandelier_exit_report(tickers_historical_data)
+    notify_telegram_channel(report)
+
+
+if __name__ == "__main__":
+    print("Initializing 🐺StockWolf: Chandelier Exit\n")
+    schedule.every().day.at("09:30", "America/New_York").do(job)
+    while True:
+        schedule.run_pending()
+        time.sleep(600)
+        print("Waiting until 9:30AM New York time")
