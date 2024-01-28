@@ -1,0 +1,7 @@
+
+.idea
+*.iml
+out
+gen
+.env
+DS_Store
