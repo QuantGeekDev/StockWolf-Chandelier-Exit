@@ -74,10 +74,19 @@ def calculate_average_true_range(ticker_df):
 
     return ticker_df
 
+
+def calculate_highest_price(ticker_df, lookback_period=5):
+    """ Returns the highest price within the last lookback_period rows """
+    if len(ticker_df) >= lookback_period:
+        highest_price = ticker_df["high"][-lookback_period:].max()
+    else:
+        highest_price = ticker_df["high"].max()
+    return highest_price
+
 tickers = get_watchlist()
 tickers_historical_data = get_historical_data(tickers)
 
 for ticker, data in tickers_historical_data.items():
     tickers_historical_data[ticker] = calculate_average_true_range(data)
-
-
+    peak_price = calculate_highest_price(data)
+    print(peak_price)
