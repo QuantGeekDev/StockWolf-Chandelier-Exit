@@ -13,6 +13,7 @@ ALPACA_SECRET_KEY = os.getenv("ALPACA_SECRET_KEY")
 ALPACA_BASE_URL = os.getenv("ALPACA_BASE_URL")
 TIME_INTERVAL = os.getenv("TIME_INTERVAL")
 
+
 def get_watchlist():
     """ Converts watchlist.csv to pandas dataframe """
     watchlist_name = "./watchlist.csv"
@@ -75,7 +76,7 @@ def calculate_average_true_range(ticker_df):
     return ticker_df
 
 
-def calculate_highest_price(ticker_df, lookback_period=5):
+def calculate_highest_price(ticker_df, lookback_period=22):
     """ Returns the highest price within the last lookback_period rows """
     if len(ticker_df) >= lookback_period:
         highest_price = ticker_df["high"][-lookback_period:].max()
@@ -83,10 +84,21 @@ def calculate_highest_price(ticker_df, lookback_period=5):
         highest_price = ticker_df["high"].max()
     return highest_price
 
+
+def calculate_chandelier_exit(average_true_range, highest_price, multiplier=2.5):
+    """ Calculates chandelier exit price following this formula:
+    Chandelier Exit = Highest High – (ATR * Multiplier)"""
+    chandlier_exit_price = highest_price - (average_true_range * multiplier)
+    return chandlier_exit_price
+
+
 tickers = get_watchlist()
 tickers_historical_data = get_historical_data(tickers)
 
+
 for ticker, data in tickers_historical_data.items():
     tickers_historical_data[ticker] = calculate_average_true_range(data)
-    peak_price = calculate_highest_price(data)
-    print(peak_price)
+    highest_price = calculate_highest_price(data)
+    current_average_true_range = data.tail(1)["average_true_range"].values[0]
+    current_chandelier_exit = calculate_chandelier_exit(current_average_true_range, highest_price)
+    print(f"{ticker}: Chandelier Exit Price = {current_chandelier_exit} ")
