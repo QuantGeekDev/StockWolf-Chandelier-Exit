@@ -104,13 +104,14 @@ def notify_telegram_channel(report):
 
 
 def generate_chandelier_exit_report(tickers_historical_data):
+    """ Generate a chandelier exit price report as a string """
     report = ""
     for ticker, data in tickers_historical_data.items():
         try:
             tickers_historical_data[ticker] = calculate_average_true_range(data)
             highest_price = calculate_highest_price(data)
             current_average_true_range = data.tail(1)["average_true_range"].values[0]
-            current_chandelier_exit = calculate_chandelier_exit(current_average_true_range, highest_price)
+            current_chandelier_exit = round(calculate_chandelier_exit(current_average_true_range, highest_price), 2)
             ticker_report = f"\n{ticker}: Chandelier Exit Price = ${current_chandelier_exit} "
             print(ticker_report)
             report = report + ticker_report
@@ -121,6 +122,7 @@ def generate_chandelier_exit_report(tickers_historical_data):
 
 
 def job():
+    """ Main analysis logic loop"""
     tickers = get_watchlist()
     tickers_historical_data = get_historical_data(tickers)
     report = generate_chandelier_exit_report(tickers_historical_data)
