@@ -28,9 +28,10 @@ def get_watchlist():
 
 
 def get_historical_data_start_date(days=30, hours=30, minutes=30):
+    """ Gets start date n timeframe units of measurements back from now """
     if not TIME_INTERVAL:
         print("Missing TIME_INTERVAL from environment variables")
-    """ Gets start date n timeframe units of measurements back from now """
+
     if TIME_INTERVAL == "1Day":
         start_date = datetime.date.today() - datetime.timedelta(days=days)
     elif TIME_INTERVAL == "1Hour":
